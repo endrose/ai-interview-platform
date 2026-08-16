@@ -95,7 +95,13 @@ async function measureUploadSpeed(): Promise<number> {
             const formData = new FormData();
             formData.append("test", uploadData);
             const start = performance.now();
-            await fetch(endpoint, { method: "POST", body: formData });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+            const response = await fetch(endpoint, { method: "POST", body: formData, signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (!response.ok) {
+                throw new Error("HTTP error " + response.status);
+            }
             const seconds = (performance.now() - start) / 1000;
             return uploadSizeMB / seconds;
         } catch {
