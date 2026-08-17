@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
@@ -18,6 +19,14 @@ export default defineConfig({
                 secure: false,
             },
         },
+    },
+    test: {
+        globals: true,
+        environment: 'jsdom',
+        setupFiles: './src/setupTests.ts',
+        // Windows fix: forks pool causes worker timeout; vmThreads is stable on Windows
+        pool: 'vmThreads',
+        testTimeout: 15000,
     },
     build: {
         rollupOptions: {

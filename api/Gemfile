@@ -27,7 +27,8 @@ gem 'redis', '~> 5.0'
 gem 'sidekiq', '~> 7.0'
 
 # WebSocket
-gem 'faye-websocket'
+gem 'faye-websocket' # Used for incoming WS connections from the frontend (Rack middleware)
+gem 'websocket-client-simple' # Used for outgoing WSS connections to Gemini (avoids EM SSL issues on Windows)
 
 # HTTP client (Gemini REST API)
 gem 'faraday', '~> 2.0'
@@ -40,7 +41,6 @@ gem 'prawn-table', '~> 0.2'
 
 # Windows & Timezone Support
 gem 'tzinfo-data'
-gem 'fiddle'
 
 # Misc
 gem 'bootsnap', require: false
