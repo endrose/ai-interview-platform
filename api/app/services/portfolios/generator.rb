@@ -15,6 +15,8 @@ module Portfolios
 
     # Returns the Portfolio record with skills populated.
     def call
+      portfolio = nil
+
       ActiveRecord::Base.transaction do
         portfolio = @session.portfolio || @session.create_portfolio!(
           candidate_id:      @session.candidate_id,
