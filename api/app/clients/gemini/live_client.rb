@@ -8,7 +8,7 @@ require 'uri'
 module Gemini
   # Manages a persistent WebSocket connection to Gemini Live API.
   class LiveClient
-    GEMINI_WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent'
+    GEMINI_WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent'
 
     INACTIVITY_TIMEOUT = 30 # reconnect if Gemini produces no meaningful response
     GATE_OPEN_DELAY    = 0.8 # delay opening mic gate so frontend audio buffer drains and avoids echo loop
@@ -91,19 +91,19 @@ module Gemini
       @ws.send(audio_message(pcm_bytes))
     end
 
-    # Injects hidden context via realtimeInput.text — same channel as audio, no interleaving conflicts.
+    # Injects hidden context via clientContent — same channel as audio, no interleaving conflicts.
     def inject_context(text, turn_complete: true) # turn_complete kept for interface compat, ignored
       return false unless @connected && @ws
 
-      @ws.send({ realtimeInput: { text: text } }.to_json)
+      @ws.send({ clientContent: { turns: [{ role: 'user', parts: [{ text: text }] }], turnComplete: turn_complete } }.to_json)
       true
     end
 
-    # Prompts Gemini to speak first via realtimeInput.text.
+    # Prompts Gemini to speak first via clientContent.
     def trigger_opening
       return unless @connected && @ws
 
-      @ws.send({ realtimeInput: { text: '[Start the interview. Greet the candidate and ask your first question.]' } }.to_json)
+      @ws.send({ clientContent: { turns: [{ role: 'user', parts: [{ text: '[Start the interview. Greet the candidate and ask your first question.]' }] }], turnComplete: true } }.to_json)
       Rails.logger.info('[Gemini::LiveClient] trigger_opening sent')
     end
 

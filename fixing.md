@@ -1,55 +1,61 @@
-# 🛠️ Fix & Implement: AI Interview & Portfolio Generation Workflow
+# 🛠️ Task Plan: AI Interview Platform Revamp
 
-**Priority:** P0 (Critical - Core Feature Broken)  
-**Target:** Resolving Background Job execution, Gemini AI API integration, and Candidate Portfolio generation.
-
----
-
-## 📌 Task 1: Fix Background Job Infrastructure (Sidekiq / Inline Adapter)
-
-- [x] **1.1 Configure Development Environment Queue**
-  - [x] Buka `api/config/environments/development.rb`.
-  - [x] Set `config.active_job.queue_adapter = :inline` (agar pekerjaan *async* berjalan tanpa perlu dependensi Sidekiq/Redis tambahan di Windows).
-  - [x] Atau jika menggunakan Sidekiq, pastikan Redis service aktif (`redis-server`) dan jalankan `bundle exec sidekiq` tanpa error.
-- [x] **1.2 Verify Job Execution**
-  - [x] Pastikan job pencatatan/pemrosesan wawancara tidak berhenti di status `queued` atau `pending`.
+**Deadline:** Wed, 19 Aug 2026, 13:00 WIB | **Repo:** `rakamindev/ai-interview-platform` | **Branch:** `feature/revamp-fullstack-engineer`
 
 ---
 
-## 📌 Task 2: Fix & Enable Gemini AI Interview Engine
+## 🚨 P0 (URGENT): Fix Idle AI Interview Session ("Connected - Connecting...")
 
-- [x] **2.1 Audit Gemini API Environment Variables**
-  - [x] Periksa file `api/.env` dan pastikan konfigurasi sudah diatur:
-    ```env
-    GEMINI_API_KEY="AIzaSy..." # Kunci API Valid dari Google AI Studio
-    GEMINI_FLASH_MODEL="gemini-2.5-flash"
-    GEMINI_PRO_MODEL="gemini-2.5-flash"
-    ```
-- [x] **2.2 Refactor Gemini Service / API Client**
-  - [x] Periksa service class Gemini di `api/app/services/` (misal: `GeminiService` atau `AiInterviewService`).
-  - [x] Tangani penanganan *error* saat API gagal merespons, terkena *rate limit* (429), atau memberikan format JSON tidak valid.
-  - [x] Tambahkan log yang aman (tanpa mencetak PII/Data Pribadi Kandidat sesuai UU PDP).
-- [x] **2.3 Test Interview AI Flow**
-  - [x] Buka `web/` (`http://localhost:5173`), jalankan simulasi tes wawancara.
-  - [x] Pastikan respons pertanyaan dari Gemini AI muncul secara interaktif dan status wawancara diperbarui.
+- [x] **0.1 Backend Trigger (`api/`)**
+  - Changed `GEMINI_WS_URL` endpoint from `v1beta` → `v1alpha` in `live_client.rb`.
+  - Changed `inject_context` / `trigger_opening` to use `clientContent` (correct Gemini Live API message format).
+  - `build_on_ready` already calls `trigger_opening` → AI speaks first automatically.
+  - Added fallback/error message path if Gemini returns error on WS close.
+- [x] **0.2 Frontend Connection State (`web/`)**
+  - Upgraded connecting state to spinner + contextual text ("Connecting..." / "AI is preparing...").
+  - `[⚡ Force reconnect]` button already wired to `debug_force_reconnect` in DEV.
 
 ---
 
-## 📌 Task 3: Fix Portfolio & Report Generation
+## 📌 P1: Core Functionality, Data Safety & Edge Cases
 
-- [x] **3.1 Audit Portfolio Calculation Logic**
-  - [x] Cek file job/service pembuat portofolio/laporan (misal: `GeneratePortfolioJob` atau `Assessments::SummaryService`).
-  - [x] Tangani *edge cases*: kandidat dengan *skill* yang belum dinilai, rating kosong (`nil`), atau respons teks yang sangat panjang.
-- [x] **3.2 Fix Frontend UI for Portfolio / Report**
-  - [x] Periksa komponen React di `web/src/` yang menampilkan Ringkasan Portofolio Kandidat.
-  - [x] Tambahkan *Loading Skeleton / Spinner* saat AI sedang memproses laporan.
-  - [x] Tambahkan *Error Boundary / Retry Button* jika pemrosesan AI gagal, agar halaman tidak *crash* atau *blank*.
+- [x] **1.1 Portfolio & Export Hardening**
+  - `parseLevel` now returns `0` for `null`/`undefined` (was silently mapping to L1).
+  - Added `LEVEL_LABELS[0] = "N/A"` and `LEVEL_BADGE_CLASSES[0]` for unassessed skills.
+  - `ConfidenceIndicator` hidden when `effectiveLevel === 0`.
+  - `break-words` added to evidence quotes and competency summary (PDF/print safe).
+- [x] **1.2 UU PDP Privacy Compliance**
+  - `filter_parameter_logging.rb` extended with `:candidate_name, :candidate_email, :phone_number`.
+  - Sidekiq workers do not log raw job arguments (only job class + session ID in logger).
+- [x] **1.3 Environment & Runtime**
+  - `GEMINI_LIVE_MODEL` updated to `gemini-3.1-flash-live-preview` in `application.yml`.
+  - `webmock` gem added to Gemfile and installed.
 
 ---
 
-## 📌 Task 4: Automated Testing & Verification Proofs
+## 📌 P2: Testing Harness & Engineering Craft
 
-- [x] **4.1 Write RSpec Specs for Gemini & Portfolio Jobs**
-  - [x] Buat unit test di `api/spec/services/` menggunakan stub/mock (WebMock) agar pengujian tidak menghabiskan kuota Gemini API.
-- [x] **4.2 Record AI Verification Moment**
-  - [x] Catat 1 momen di mana kode hasil generatif AI sempat berisiko/salah, serta bagaimana solusi perbaikannya (untuk dimasukkan ke laporan PDF akhir).
+- [x] **2.1 Test Suite Infrastructure**
+  - `spec/services/portfolios/generator_spec.rb` — 4 examples, 0 failures (WebMock ready).
+  - `webmock` gem installed in test group.
+- [x] **2.2 Seeded Fault Test & AI Verification Moment**
+  - Bug documented in `generator_spec.rb`: original code had `clamp(1,5)` that mapped `nil → L1`.
+  - Fix: `next if level <= 0` guard. Tests prove both the bug behavior and the fix.
+
+---
+
+## 📌 P3: Monozukuri UI/UX Polish
+
+- [x] **3.1 Complete UI States Coverage**
+  - Loading: Rich skeleton loader with header + card shimmer on PortfolioPage.
+  - Error/Fallback: Retry button for failed portfolio generation (was already present).
+  - Connecting: Spinner animation with subtitle text.
+  - Text Overflow: `break-words` on all long-form content.
+
+---
+
+## 📌 P4: Final Submission Deliverables
+
+- [x] **4.1 Architecture & Trade-off Notes** → `D:\Workspace\Brains\ai_interview_platform_architecture.md`
+- [ ] **4.2 Screenshots & Video** — Capture 5 key UI states (PR notes below).
+- [x] **4.3 Submission Report** → `D:\Workspace\Brains\submission_report.md`
